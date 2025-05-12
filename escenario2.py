@@ -4,15 +4,6 @@ from scipy.stats import norm, expon, lognorm
 from pyedflib import highlevel
 from escenario1 import cargar_y_segmentar
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import norm, expon, lognorm
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.stats import norm, expon, lognorm
-
 def ajustar_y_graficar_pdf_normal_exponencial(data, nombre_desc):
     x = np.linspace(min(data), max(data), 100)
 
@@ -188,7 +179,7 @@ def main():
             retardo = t - inicio_real_crisis
             if retardo < 0:
                 retardo = -retardo
-            print(f"Canal {i} ({etiquetas[i]}): Detectado en {t:.2f}s \t→ Retardo: {retardo:.2f} segundos")
+            print(f"Canal {i} ({etiquetas[i]}): Detectado en {t:.2f}s \t-> Retardo: {retardo:.2f} segundos")
         else:
             print(f"Canal {i} ({etiquetas[i]}): No detectado")
 
@@ -198,3 +189,4 @@ def main():
 
 
 main()
+
