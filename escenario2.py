@@ -1,7 +1,106 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from escenario1 import cargar_y_segmentar
+from scipy.stats import norm, expon, lognorm
 from pyedflib import highlevel
+from escenario1 import cargar_y_segmentar
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm, expon, lognorm
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm, expon, lognorm
+
+def ajustar_y_graficar_pdf_normal_exponencial(data, nombre_desc):
+    x = np.linspace(min(data), max(data), 100)
+
+    # --- Ajuste Normal ---
+    mu, sigma = norm.fit(data)
+    pdf_norm = norm.pdf(x, mu, sigma)
+
+    # --- Ajuste Exponencial ---
+    loc_exp, scale_exp = expon.fit(data)
+    pdf_expon = expon.pdf(x, loc_exp, scale_exp)
+
+    # --- Ajuste Lognormal (forzando loc=0) ---
+    shape_log, loc_log, scale_log = lognorm.fit(data, floc=0)
+    pdf_log = lognorm.pdf(x, shape_log, loc_log, scale_log)
+
+    # --- Gráfico Normal ---
+    plt.figure(figsize=(10, 4))
+    plt.hist(data, bins=50, density=True, alpha=0.5, label="Datos")
+    plt.plot(x, pdf_norm, 'r-', label=f'Normal PDF\nμ={mu:.3f}, σ={sigma:.3f}')
+    plt.title(f"Ajuste Normal - {nombre_desc}")
+    plt.xlabel(nombre_desc)
+    plt.ylabel("Densidad")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # Boxplot Normal
+    plt.figure(figsize=(6, 2))
+    plt.boxplot(data, vert=False)
+    plt.title(f"Boxplot (Normal) - {nombre_desc}")
+    plt.xlabel(nombre_desc)
+    plt.grid(True)
+    plt.show()
+
+    # --- Gráfico Exponencial ---
+    plt.figure(figsize=(10, 4))
+    plt.hist(data, bins=50, density=True, alpha=0.5, label="Datos")
+    plt.plot(x, pdf_expon, 'g-', label=f'Exponencial PDF\nloc={loc_exp:.3f}, scale={scale_exp:.3f}')
+    plt.title(f"Ajuste Exponencial - {nombre_desc}")
+    plt.xlabel(nombre_desc)
+    plt.ylabel("Densidad")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # Boxplot Exponencial
+    plt.figure(figsize=(6, 2))
+    plt.boxplot(data, vert=False)
+    plt.title(f"Boxplot (Exponencial) - {nombre_desc}")
+    plt.xlabel(nombre_desc)
+    plt.grid(True)
+    plt.show()
+
+    # --- Gráfico Lognormal ---
+    plt.figure(figsize=(10, 4))
+    plt.hist(data, bins=50, density=True, alpha=0.5, label="Datos")
+    plt.plot(x, pdf_log, 'b-', label=f'Lognormal PDF\nshape={shape_log:.3f}, scale={scale_log:.3f}')
+    plt.title(f"Ajuste Lognormal - {nombre_desc}")
+    plt.xlabel(nombre_desc)
+    plt.ylabel("Densidad")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # Boxplot Lognormal
+    plt.figure(figsize=(6, 2))
+    plt.boxplot(data, vert=False)
+    plt.title(f"Boxplot (Lognormal) - {nombre_desc}")
+    plt.xlabel(nombre_desc)
+    plt.grid(True)
+    plt.show()
+
+    return (mu, sigma), (loc_exp, scale_exp), (shape_log, loc_log, scale_log)
+
+
+
+
+def detectar_crisis_por_umbral_todos_canales(resultados, descriptor, umbral):
+    n_canales = len(resultados[0][descriptor])
+    tiempos_detectados = [None] * n_canales
+
+    for r in resultados:
+        valores = r[descriptor]
+        for ch in range(n_canales):
+            if tiempos_detectados[ch] is None and valores[ch] > umbral:
+                tiempos_detectados[ch] = r['inicio']
+
+    return tiempos_detectados
 
 
 
@@ -76,6 +175,26 @@ def main():
     
     descriptores_a_graficar = ['rms', 'varianza', 'std', 'media_abs', 'autocorrelacion', 'autocovarianza']
     graficar_todos_los_descriptores(senial_procesada, etiquetas, descriptores_a_graficar)
+
+    desc_crisis = calcular_descriptores_completos(crisis)
+    umbral_varianza = np.min(desc_crisis['varianza'])  # establezco un minimo del descriptor
+
+    tiempos_detectados = detectar_crisis_por_umbral_todos_canales(senial_procesada, 'varianza', umbral_varianza)
+    inicio_real_crisis = 120  # porque before dura 2 minutos
+
+    print(f"\n--- Detección por canal usando umbral de varianza ---")
+    for i, t in enumerate(tiempos_detectados):
+        if t is not None:
+            retardo = t - inicio_real_crisis
+            if retardo < 0:
+                retardo = -retardo
+            print(f"Canal {i} ({etiquetas[i]}): Detectado en {t:.2f}s \t→ Retardo: {retardo:.2f} segundos")
+        else:
+            print(f"Canal {i} ({etiquetas[i]}): No detectado")
+
+    desc_total = calcular_descriptores_completos(senal_total)
+    varianzas = desc_total['varianza'].flatten()
+    (mu, sigma), (loc_exp, scale_exp), (shape, loc_log, scale_log) = ajustar_y_graficar_pdf_normal_exponencial(varianzas, "varianza")
 
 
 main()
