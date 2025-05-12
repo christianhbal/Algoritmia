@@ -30,8 +30,8 @@ def calcular_descriptores(segmento):
 def main():
     # Usamos la primera crisis como ejemplo
     nombre_edf = "chb05_13.edf"
-    inicio = 1732
-    fin = 1772
+    inicio = 1086
+    fin = 1196
 
     before, crisis, after, etiquetas = cargar_y_segmentar(nombre_edf, inicio, fin)
 

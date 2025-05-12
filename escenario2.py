@@ -64,8 +64,8 @@ def analizar_por_frecuencia(senales, etiquetas, frecuencia, ventana_seg=2, paso_
 def main():
 
     nombre_edf = "chb05_13.edf"
-    inicio = 1732
-    fin = 1772
+    inicio = 1086
+    fin = 1196
     senales, headers, _ = highlevel.read_edf(nombre_edf)
 
     before, crisis, after, etiquetas = cargar_y_segmentar(nombre_edf, inicio, fin)
