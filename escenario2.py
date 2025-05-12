@@ -5,29 +5,42 @@ from pyedflib import highlevel
 
 
 
-def graficar_descriptor(resultados, canal, descriptor, etiquetas):
-    tiempos = [r['inicio'] for r in resultados]
-    valores = [r[descriptor][canal] for r in resultados]
+def graficar_todos_los_descriptores(resultados, etiquetas, descriptores):
+    n_canales = len(etiquetas)
+    n_descriptores = len(descriptores)
 
-    plt.figure(figsize=(10, 4))
-    plt.plot(tiempos, valores, label=f'{descriptor} - {etiquetas[canal]}')
-    plt.xlabel("Tiempo (s)")
-    plt.ylabel(descriptor)
-    plt.grid(True)
-    plt.title(f'Evolución del descriptor {descriptor} - Canal {etiquetas[canal]}')
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    for canal in range(n_canales):
+        fig, axes = plt.subplots(n_descriptores, 1, figsize=(10, 2.5 * n_descriptores), sharex=True)
+        fig.suptitle(f'Canal: {etiquetas[canal]}', fontsize=14)
+
+        for idx, descriptor in enumerate(descriptores):
+            tiempos = [r['inicio'] for r in resultados]
+            valores = [r[descriptor][canal] for r in resultados]
+            ax = axes[idx] if n_descriptores > 1 else axes
+            ax.plot(tiempos, valores, label=descriptor)
+            ax.set_ylabel(descriptor)
+            ax.grid(True)
+            ax.legend()
+
+        axes[-1].set_xlabel("Tiempo (s)")
+        plt.tight_layout(rect=[0, 0, 1, 0.96])
+        plt.show()
+
 
 
 
 def calcular_descriptores_completos(segmento):              #Calculo estadísticos del segmento antes, crisis, despues
     return {
+        'rms': np.sqrt(np.mean(segmento ** 2, axis=1)),
         'varianza': np.var(segmento, axis=1),
         'std': np.std(segmento, axis=1),
         'media_abs': np.mean(np.abs(segmento), axis=1),
-        'autocorrelacion': np.array([np.correlate(c, c, mode='full')[len(c)-1] for c in segmento]),
-        'correlacion_de_Pearson': np.corrcoef(segmento)
+        'autocorrelacion': np.array([
+            np.correlate(c, c, mode='full')[len(c)//2] for c in segmento
+        ]),
+        'autocovarianza': np.array([
+            np.mean((c - np.mean(c)) * (c - np.mean(c))) for c in segmento
+        ]),
     }
 
 def analizar_por_frecuencia(senales, etiquetas, frecuencia, ventana_seg=2, paso_seg=0.5):          #Analizo la señal por pasos de frecuencia                                                                                             
@@ -54,15 +67,15 @@ def main():
     inicio = 1732
     fin = 1772
     senales, headers, _ = highlevel.read_edf(nombre_edf)
-    canal = 0
-    descriptor = 'std'
 
     before, crisis, after, etiquetas = cargar_y_segmentar(nombre_edf, inicio, fin)
     frecuencia = headers[0]["sample_frequency"]
 
     senal_total = np.concatenate([before,crisis,after],axis=1);                        #concateno y armo la matriz de la muestra de la señal
     senial_procesada = analizar_por_frecuencia(senal_total,etiquetas, frecuencia)
-    graficar_descriptor(senial_procesada, canal, descriptor, etiquetas)
+    
+    descriptores_a_graficar = ['rms', 'varianza', 'std', 'media_abs', 'autocorrelacion', 'autocovarianza']
+    graficar_todos_los_descriptores(senial_procesada, etiquetas, descriptores_a_graficar)
 
 
 main()
